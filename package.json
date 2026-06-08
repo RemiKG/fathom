@@ -1,0 +1,26 @@
+{
+  "name": "fathom",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Fathom — ask how anything works and watch a fact-checked, hand-inked cutaway voyage of it. An autonomous, self-checking short-video showrunner on Qwen Cloud.",
+  "license": "MIT",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "mcp": "node --experimental-strip-types scripts/mcp-stdio.ts"
+  },
+  "dependencies": {
+    "next": "15.5.4",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "zod": "3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "22.10.7",
+    "@types/react": "19.1.0",
+    "@types/react-dom": "19.1.0",
+    "typescript": "5.7.3"
+  }
+}
