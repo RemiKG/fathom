@@ -41,3 +41,47 @@ repo/
 │   │       ├── logbook/  health/
 │   │       └── mcp/             # the MCP server (JSON-RPC 2.0 over Streamable HTTP)
 │   ├── lib/
+│   │   ├── art/                 # the procedural engraving library (chart.ts + plate.ts)
+│   │   ├── provider/            # the LLM seam (llm.ts) + Qwen media (qwenMedia.ts)
+│   │   ├── pipeline/            # the crew: tools.ts, grounding.ts, orchestrator.ts, bus.ts, service.ts, types.ts
+│   │   ├── config.ts            # the env seam (nothing hardcoded)
+│   │   ├── store.ts             # the Logbook (filesystem default; Alibaba OSS seam)
+│   │   └── seed.ts              # the pre-seeded example voyages
+│   └── components/              # TopBar, VoyagePlayer, ChartRoom, VoyageNav, art wrappers
+├── skill/                       # the custom Qwen Skill (SKILL.md + scripts/)
+└── public/                      # PWA manifest, service worker, icons
+```
+
+### The pipeline (the Navigator's tool loop)
+
+One button → the orchestrator runs the whole short-video pipeline itself and **streams every stage** to the Sounding view over SSE (`the pipeline is the interface`):
+
+1. **`plot_voyage`** — the Navigator (`qwen3.7-max`) reads the question, decides the one revelation and the arc, writes the claims and picks a diagram archetype.
+2. **`ground_claims`** — real, **keyless** retrieval (Wikipedia REST) of the facts + the source URLs each claim must respect. Layered with Qwen `web_search` when a key is present.
+3. **`chart_scene`** — the Cartographer (`qwen3.7-plus`) emits the typed shot list + the one seed-locked cutaway diagram, and grounds each claim to a retrieved source (or **withholds** it).
+4. **`engrave_plate`** — the seed-locked cutaway plate. **Procedural hand-authored vector** by default (the signature hand-inked look; `src/lib/art`), rasterised via `wan2.6-t2i` when a Qwen key exists.
+5. **`sound_scene`** — the Sounding: each scene filmed by `wan2.7-r2v` reference-to-video with the plate as the reference image, so the mechanism moves while keeping the inked look. *(Honest degrade — see below.)*
+6. **`assay_frame`** — the Assayer (`qwen3-vl-plus`, or the vision fallback) audits each frame for **truth** (vs the grounded claim) and **style** (vs the plate), re-renders only the shot it rejects, and **withholds** what it cannot back.
+7. **`cut_short`** — the deterministic Cutter assembles the cited edit and computes every live number.
+
+Every on-screen counter (frames verified/withheld, sources cited, seconds used vs a naive baseline, style-consistency, re-render rate, end-to-end) is **computed from what actually happened** — never canned.
+
+### The provider seam
+
+Nothing is hardcoded. `src/lib/config.ts` reads the environment and picks a provider:
+
+- **Qwen Cloud** (`DASHSCOPE_API_KEY`, base `https://dashscope-intl.aliyuncs.com`) — the production engine (chat / vision / image / video / tts), OpenAI-compatible for text+vision.
+- **Anthropic** (`ANTHROPIC_API_KEY`) — a dev fallback so the whole orchestration (script, grounding, structured shot list, vision audit) runs end-to-end **without** a Qwen key.
+- **Neither** — the app still serves the pre-seeded example voyages and honestly reports that an engine is needed.
+
+**Honest degrade:** the one thing that genuinely needs Qwen video-gen is the *moving video*. Without `DASHSCOPE_API_KEY`, each scene is the **procedural inked plate animated in the player** — a clearly-labelled "still preview" — and the real `wan2.7-r2v` path activates the moment the key exists, with no code change. Narration falls back to the browser Speech API; the Qwen `cosyvoice`/`qwen-tts` path activates with the key.
+
+### Persistence — the Logbook
+
+Fathom owns its record: question, shot list, claims, source URLs, verdicts, counters (+ the downloaded media). Default backend is the **filesystem** (`.fathom-store/` JSON + media served from `/public/voyages`), so voyages survive a closed tab and a cold session. An **Alibaba Cloud OSS** object-storage seam (`ALIBABA_OSS_*`) and an external-DB seam (`DATABASE_URL`) activate when configured.
+
+### The MCP + Skill surface
+
+The same six tools are exposed as an **MCP server** (JSON-RPC 2.0 over Streamable HTTP) at **`/api/mcp`**, mountable by any agent, plus a convenience `sound_voyage` tool that runs the whole loop. The `skill/` folder packages it as a reusable **Qwen Skill** (`SKILL.md` + `scripts/`) — a drop-in *"explain-anything-as-a-checked-short"* primitive.
+
+```bash
