@@ -1,0 +1,72 @@
+/* Per-screen layout — responsive.
+   Authored at 1440×900; here the chrome flexes but keeps the same proportions. */
+
+/* ── 01 · The Surface ───────────────────────────────────────────── */
+.surface-glow{ position:fixed; left:50%; bottom:-280px; transform:translateX(-50%); width:min(1000px,90vw); height:560px; z-index:1;
+  background:radial-gradient(50% 60% at 50% 100%, rgba(217,164,65,.28) 0%, rgba(217,164,65,.08) 42%, transparent 72%); pointer-events:none; }
+.surface-wrap{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:17px; padding:40px 24px 90px; position:relative; z-index:2; }
+.hero-wm{ font-family:var(--display); font-weight:700; font-size:clamp(56px,9vw,100px); line-height:1; color:var(--ink); position:relative; margin-bottom:40px; }
+.htag{ font-family:var(--serif); font-style:italic; font-weight:500; font-size:clamp(19px,2.4vw,25px); color:var(--ink-60); margin-top:2px; }
+.hook{ font-family:var(--serif); font-weight:600; font-size:clamp(19px,2.6vw,26px); color:var(--ink); text-align:center; margin-top:8px; max-width:780px; }
+.hook .g{ color:var(--brass-ink); }
+.surface-prompt{ width:min(760px,94vw); margin-top:6px; }
+.sparks{ display:flex; gap:9px; flex-wrap:wrap; justify-content:center; max-width:790px; }
+.resume{ display:flex; align-items:center; gap:14px; padding:12px 16px; width:min(760px,94vw); margin-top:8px; }
+.resume .mini{ width:78px; height:60px; border-radius:9px; overflow:hidden; border:1px solid var(--hair-2); flex:none; background:var(--chart); display:flex; align-items:center; justify-content:center; }
+.resume .rt{ flex:1; min-width:0; }
+.resume .rt .n{ font-family:var(--serif); font-weight:700; font-size:15px; color:var(--ink); }
+.resume .rt .s{ font-family:var(--mono); font-size:11.5px; color:var(--ink-45); margin-top:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.surface-angler{ position:fixed; left:80px; bottom:70px; z-index:2; }
+.surface-angler .cap{ text-align:center; margin-top:2px; width:118px; font-size:12px; }
+.surface-footer{ position:fixed; bottom:22px; left:0; right:0; display:flex; align-items:center; justify-content:center; gap:10px; z-index:3; flex-wrap:wrap; padding:0 12px; }
+@media (max-width:1100px){ .surface-angler{ display:none; } }
+
+/* ── shared player (03/04) + sounding (02) ──────────────────────── */
+.body-split{ flex:1; display:flex; min-height:0; }
+.rail{ width:min(38%,520px); background:var(--chart-lo); border-left:1px solid var(--hair-2); padding:20px 22px; display:flex; flex-direction:column; gap:14px; overflow:auto; }
+.stage{ flex:1; position:relative; overflow:hidden; min-width:0; }
+.stage .z2{ position:relative; z-index:2; height:100%; }
+
+.player-wrap{ flex:1; display:flex; align-items:center; justify-content:center; position:relative; padding:22px 40px 20px; }
+.player{ width:min(1180px,94vw); position:relative; }
+.screen{ position:relative; aspect-ratio:1180/580; border-radius:16px; overflow:hidden; border:1px solid var(--deckle);
+  box-shadow:0 0 110px -6px rgba(217,164,65,.62), 0 30px 70px -30px #000; }
+.screen .cut{ position:absolute; top:44%; left:50%; transform:translate(-50%,-50%); width:64%; z-index:2; }
+.ov-title{ position:absolute; top:20px; left:24px; z-index:4; }
+.ov-title .t{ font-family:var(--serif); font-weight:700; font-size:clamp(16px,2vw,21px); color:var(--ink); }
+.ov-title .s{ font-family:var(--mono); font-size:11.5px; color:var(--ink-45); margin-top:4px; text-transform:uppercase; letter-spacing:.1em; }
+.beatchip{ position:absolute; top:22px; right:22px; z-index:4; display:inline-flex; align-items:center; gap:8px;
+  font-family:var(--mono); font-size:12px; color:var(--brass-hi); background:var(--ink); padding:7px 13px; border-radius:999px; }
+.narr{ position:absolute; left:0; right:0; bottom:17%; text-align:center; z-index:4; padding:0 8%;
+  font-family:var(--serif); font-style:italic; font-weight:600; font-size:clamp(16px,2.1vw,23px); line-height:1.25; color:var(--brass-ink); }
+.breath{ position:absolute; left:50%; bottom:5%; transform:translateX(-50%); z-index:4; max-width:90%; text-align:center;
+  font-family:var(--serif); font-style:italic; font-size:clamp(14px,1.8vw,17.5px); color:var(--brass-ink); }
+.lowerthird{ position:absolute; left:22px; bottom:18px; z-index:5; display:flex; align-items:center; gap:12px;
+  background:var(--ink); color:var(--chart); border-radius:12px; padding:11px 14px; box-shadow:var(--lift); border-left:3px solid var(--brass); max-width:min(520px,80%); }
+.lowerthird .lt-seal{ width:30px; height:30px; flex:none; }
+.lowerthird .sd{ font-family:var(--mono); font-size:11px; color:var(--brass-hi); text-transform:uppercase; letter-spacing:.05em; }
+.lowerthird .st{ font-family:var(--serif); font-weight:600; font-size:15px; color:var(--chart); margin-top:2px; }
+.scrub{ display:flex; align-items:center; gap:15px; padding:16px 6px 2px; flex-wrap:wrap; }
+.bar{ flex:1; min-width:160px; height:6px; border-radius:999px; background:var(--deep-2); position:relative; cursor:pointer; }
+.bar > i{ position:absolute; left:0; top:0; height:100%; border-radius:999px; background:linear-gradient(90deg,var(--brass-core),var(--brass)); }
+.bar > .m{ position:absolute; top:-4px; width:2px; height:14px; background:var(--onchart-45); }
+.bar > .h{ position:absolute; top:50%; width:16px; height:16px; border-radius:50%; background:var(--brass); transform:translate(-50%,-50%); box-shadow:0 0 0 4px color-mix(in srgb,var(--brass) 24%,transparent); }
+.tc{ font-family:var(--mono); font-size:13px; color:var(--onchart); }
+
+/* sounding stage specifics */
+.titlebar{ position:absolute; top:22px; left:26px; right:26px; display:flex; align-items:flex-start; justify-content:space-between; z-index:3; gap:12px; }
+.vtitle{ font-family:var(--serif); font-weight:700; font-size:clamp(18px,2.4vw,23px); color:var(--chart); }
+.vtitle .sub{ font-family:var(--serif); font-style:italic; font-weight:400; font-size:15px; color:var(--onchart); margin-top:3px; }
+.status{ display:inline-flex; align-items:center; gap:8px; font-family:var(--mono); font-size:12px; color:var(--brass-hi); background:rgba(20,28,34,.5); border:1px solid var(--deephair-2); padding:6px 12px; border-radius:999px; white-space:nowrap; }
+.platewrap{ position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:min(660px,80%); aspect-ratio:660/404; border-radius:14px; overflow:hidden; box-shadow:0 0 60px -6px rgba(217,164,65,.5), 0 22px 50px -20px #000; border:1px solid var(--deckle); }
+.platewrap .pbg{ position:absolute; inset:0; z-index:0; }
+.platewrap .plate-svg{ position:relative; z-index:2; display:block; width:94%; margin:4% auto 0; }
+.stage-angler{ position:absolute; left:34px; bottom:26px; z-index:3; }
+.budget-ov{ position:absolute; right:34px; bottom:26px; width:min(320px,44%); z-index:3;
+  background:color-mix(in srgb,var(--deep-lo) 66%, transparent); border:1px solid var(--deephair-2); border-radius:12px; padding:12px 14px; }
+.strip{ background:var(--chart-hi); border-top:1px solid var(--hair-2); padding:14px 24px; }
+
+/* ── 05 · Grounding ─────────────────────────────────────────────── */
+.gr-main{ flex:1.5; padding:26px 30px; overflow:auto; }
+.gr-main h1{ font-family:var(--display); font-weight:700; font-size:clamp(24px,3.4vw,30px); color:var(--ink); margin:2px 0 3px; }
+.ethos{ font-family:var(--serif); font-style:italic; font-size:17px; color:var(--brass-ink); margin-bottom:18px; }
