@@ -85,3 +85,48 @@ Fathom owns its record: question, shot list, claims, source URLs, verdicts, coun
 The same six tools are exposed as an **MCP server** (JSON-RPC 2.0 over Streamable HTTP) at **`/api/mcp`**, mountable by any agent, plus a convenience `sound_voyage` tool that runs the whole loop. The `skill/` folder packages it as a reusable **Qwen Skill** (`SKILL.md` + `scripts/`) — a drop-in *"explain-anything-as-a-checked-short"* primitive.
 
 ```bash
+curl -s $URL/api/mcp -H 'content-type: application/json' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"sound_voyage","arguments":{"question":"how does a black hole bend light?"}}}'
+```
+
+### The art
+
+Every mark is placed by code (nineteenth-century cutaway linework, cross-hatch shading, brass instruments, a lantern-lure) and passed through a **rough-ink** filter (`feTurbulence` + `feDisplacementMap`) so vector-perfect lines read as hand-cut. Seed-locked (deterministic RNG) → reproducible. A generic diagram renderer inks *any* question in the same style; six subjects have bespoke art.
+
+---
+
+## Running it
+
+```bash
+npm install
+cp .env.example .env.local      # optional — fill in what you have
+npm run dev                     # http://localhost:3000
+```
+
+With **no keys**, you get the pre-seeded example voyages and the honest-degrade path. With
+`ANTHROPIC_API_KEY` set, the full orchestration runs live (script + grounding + shot list + vision
+audit). With `DASHSCOPE_API_KEY` set, the production Qwen engine (incl. real moving video) activates.
+
+```bash
+npm run build && npm run start  # production
+```
+
+It is a **web app / PWA** (installable, offline app-shell). See `.env.example` for every seam.
+No hardcoded URLs or ports; all configuration is via environment variables, and secrets are never
+committed.
+
+## What is REAL (the contract)
+
+Real, cold, for a stranger on their own question: the live grounded script · the retrieved source
+URLs · the seed-locked plate · the style-locked scenes (video with a Qwen key; animated inked plate
+without) · the `qwen3-vl` truth+style audit with targeted re-render and **honest withholding** · the
+narration · the cited deterministic edit · the persistent Logbook · every live counter · the
+Skill/MCP tool surface. Anything not real is disclosed on the **Honest edges** screen. Labels and
+citations are deterministic post (disclosed); the critic is bounded and withholds rather than bluffs;
+the measured numbers are labelled small-N demonstrations.
+
+## License
+
+[MIT](./LICENSE).
+
+*You ask why. It shows you. **Fathom it.***
