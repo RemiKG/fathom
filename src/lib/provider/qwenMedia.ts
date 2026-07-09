@@ -61,8 +61,8 @@ export async function startSounding(prompt: string, referenceImageUrl: string, o
   const c = getConfig();
   const data = await post(`${c.dashscopeBase}/api/v1/services/aigc/video-generation/video-synthesis`, {
     model: c.models.video,
-    // r2v takes the reference plate(s) as input.media (not img_url/ref_images)
-    input: { prompt, media: [referenceImageUrl] },
+    // r2v takes the reference plate(s) as typed input.media objects (not img_url/ref_images)
+    input: { prompt, media: [{ type: 'reference_image', url: referenceImageUrl }] },
     parameters: {
       resolution: opts.resolution || '720P',
       watermark: false,

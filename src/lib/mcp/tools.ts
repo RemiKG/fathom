@@ -94,10 +94,11 @@ export const TOOLS: McpTool[] = [
     handler: async (a) => {
       const scenes = (a.scenes || []) as Scene[];
       const claims = (a.claims || []) as Claim[];
-      const secondsUsed = Math.round(scenes.reduce((x, s) => x + (s.durationS || 0), 0) * 10) / 10;
-      const naive = Math.round((secondsUsed * 1.6 + scenes.length * 2) * 10) / 10;
+      const rendered = scenes.filter((s) => !!s.videoUrl); // only RENDERED scenes spend seconds / count as verified frames
+      const secondsUsed = Math.round(rendered.reduce((x, s) => x + (s.durationS || 0), 0) * 10) / 10;
+      const naive = secondsUsed > 0 ? Math.round((secondsUsed * 1.6 + scenes.length * 2) * 10) / 10 : 0;
       return {
-        framesVerified: scenes.filter((s) => s.status === 'verified').length, framesTotal: scenes.length,
+        framesVerified: rendered.filter((s) => s.status === 'verified').length, framesTotal: scenes.length,
         claimsGrounded: claims.filter((c) => c.sourceId).length, claimsWithheld: claims.filter((c) => c.verdict === 'withheld').length,
         sourcesCited: new Set(claims.map((c) => c.sourceId).filter(Boolean)).size,
         secondsUsed, naiveSecondsBaseline: naive, secondsSavedPct: naive ? Math.round((1 - secondsUsed / naive) * 100) : 0,

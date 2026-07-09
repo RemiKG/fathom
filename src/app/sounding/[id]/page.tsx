@@ -86,7 +86,7 @@ export default function SoundingPage() {
               {counters && (
                 <div className="budget-ov">
                   <div className="gauge on-deep">
-                    <div className="gtop"><span>video-seconds {counters.secondsUsed > 0 ? 'planned' : 'used'}</span> <b>{counters.secondsUsed.toFixed(1)}s&nbsp;/&nbsp;{counters.budgetS.toFixed(1)}s</b></div>
+                    <div className="gtop"><span>video-seconds used</span> <b>{counters.secondsUsed.toFixed(1)}s&nbsp;/&nbsp;{counters.budgetS.toFixed(1)}s</b></div>
                     <div className="gbar"><i style={{ width: `${budgetPct}%` }} /><span className="tick" style={{ left: '80%' }} /></div>
                     <div className="gtop" style={{ marginTop: 3 }}><span className="brass" style={{ fontSize: 11 }}>one plate → {scenes.length} shots · <b className="brass">{counters.secondsSavedPct}% under</b> a naive cut</span></div>
                   </div>

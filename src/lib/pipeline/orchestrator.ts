@@ -22,17 +22,20 @@ function setStatus(v: Voyage, status: VoyageStatus, label: string) {
 function computeCounters(v: Voyage): Counters {
   const scenes = v.scenes;
   const framesTotal = scenes.length;
-  const framesVerified = scenes.filter((s) => s.status === 'verified').length;
+  // only RENDERED scenes count as verified video frames or spend video-seconds —
+  // a still-preview scene (degraded mode) never inflates either number
+  const rendered = scenes.filter((s) => !!s.videoUrl);
+  const framesVerified = rendered.filter((s) => s.status === 'verified').length;
   const claimsTotal = v.claims.length;
   const claimsGrounded = v.claims.filter((c) => c.sourceId).length;
   const claimsWithheld = v.claims.filter((c) => c.verdict === 'withheld').length;
   const sourcesCited = new Set(v.claims.map((c) => c.sourceId).filter(Boolean)).size;
   const styleScores = scenes.map((s) => s.styleScore).filter((x): x is number => typeof x === 'number');
   const styleConsistency = styleScores.length ? Math.round((styleScores.reduce((a, b) => a + b, 0) / styleScores.length) * 100) / 100 : 0;
-  const secondsUsed = Math.round(scenes.reduce((a, s) => a + (s.durationS || 0), 0) * 10) / 10;
+  const secondsUsed = Math.round(rendered.reduce((a, s) => a + (s.durationS || 0), 0) * 10) / 10;
   // naive baseline: shot-by-shot WITHOUT the shared plate (≈1.6× per-shot), plus labels/citations
   // burned into video (~2s/scene). one plate → multi-shot + free deterministic post.
-  const naiveSecondsBaseline = Math.round((secondsUsed * 1.6 + framesTotal * 2) * 10) / 10;
+  const naiveSecondsBaseline = secondsUsed > 0 ? Math.round((secondsUsed * 1.6 + framesTotal * 2) * 10) / 10 : 0;
   const secondsSavedPct = naiveSecondsBaseline > 0 ? Math.round((1 - secondsUsed / naiveSecondsBaseline) * 100) : 0;
   const reRenders = scenes.filter((s) => s.reSounded).length;
   const counters: Counters = {
