@@ -60,6 +60,9 @@ function scenePrompt(v: Voyage, s: Scene): string {
 export async function runVoyage(v: Voyage): Promise<Voyage> {
   const cfg = getConfig();
   const llm = getLLM();
+  // On a duration-capped serverless host the driving stream dies at maxDuration — keep the whole
+  // run comfortably inside it and degrade unfinished renders to the labelled still preview.
+  const runDeadline = process.env.VERCEL ? Date.now() + 230_000 : null;
   try {
     if (!llm.available) throw new Error('No LLM provider configured — set DASHSCOPE_API_KEY (Qwen) or ANTHROPIC_API_KEY (dev fallback).');
 
@@ -134,10 +137,10 @@ export async function runVoyage(v: Voyage): Promise<Voyage> {
       if (cfg.video.hasEngine && referenceImageUrl) {
         try {
           const taskId = await startSounding(scenePrompt(v, s), referenceImageUrl, { durationS: Math.round(s.durationS) });
-          const url = await waitForVideo(taskId);
+          const url = await waitForVideo(taskId, runDeadline);
           if (url) {
             const bytes = await downloadBytes(url);
-            s.videoUrl = await saveMedia(v.id, `scene-${s.no}.mp4`, bytes);
+            s.videoUrl = await saveMedia(v.id, `scene-${s.no}.mp4`, bytes, url);
           }
         } catch { s.videoUrl = null; /* honest degrade to the still/animated preview */ }
       }
@@ -187,8 +190,8 @@ export async function runVoyage(v: Voyage): Promise<Voyage> {
           if (cfg.video.hasEngine && referenceImageUrl) {
             try {
               const taskId = await startSounding(scenePrompt(v, s) + '. corrected: ' + (a.fixHint || 'match the grounded claim'), referenceImageUrl, { durationS: Math.round(s.durationS) });
-              const url = await waitForVideo(taskId);
-              if (url) { const bytes = await downloadBytes(url); s.videoUrl = await saveMedia(v.id, `scene-${s.no}-v2.mp4`, bytes); }
+              const url = await waitForVideo(taskId, runDeadline);
+              if (url) { const bytes = await downloadBytes(url); s.videoUrl = await saveMedia(v.id, `scene-${s.no}-v2.mp4`, bytes, url); }
             } catch { /* keep the prior take */ }
           }
           s.styleScore = Math.min(1, (a.styleScore || 0.9) + 0.05);
@@ -232,9 +235,9 @@ export async function runVoyage(v: Voyage): Promise<Voyage> {
   }
 }
 
-/* poll an r2v job to completion, bounded */
-async function waitForVideo(taskId: string): Promise<string | null> {
-  const deadline = Date.now() + 4 * 60_000;
+/* poll an r2v job to completion, bounded (and never past the host's run deadline) */
+async function waitForVideo(taskId: string, runDeadline: number | null = null): Promise<string | null> {
+  const deadline = Math.min(Date.now() + 4 * 60_000, runDeadline ?? Infinity);
   while (Date.now() < deadline) {
     const st = await pollSounding(taskId);
     if (st.status === 'SUCCEEDED') return st.videoUrl || null;

@@ -22,20 +22,37 @@ async function post(url: string, body: unknown, async = false): Promise<any> {
 }
 
 /* ---- the seed-locked cutaway plate (wan2.6-t2i / qwen-image-2.0-pro) ----
-   Returns a real image URL. Used both as the style anchor and as the r2v reference_image. */
+   Returns a real image URL. Used both as the style anchor and as the r2v reference.
+   Native DashScope async image-generation endpoint (the compatible-mode images route
+   does not exist on dashscope-intl): submit with X-DashScope-Async, poll the task. */
 export async function generatePlateImage(prompt: string, opts: { seed?: number; size?: string } = {}): Promise<string> {
   const c = getConfig();
-  // OpenAI-compatible images endpoint (works for the wan/qwen-image families on dashscope-intl).
-  const data = await post(`${c.dashscopeBase}/compatible-mode/v1/images/generations`, {
+  const data = await post(`${c.dashscopeBase}/api/v1/services/aigc/image-generation/generation`, {
     model: c.models.image,
-    prompt,
-    n: 1,
-    size: opts.size || '1024x1024',
-    ...(opts.seed != null ? { seed: opts.seed } : {}),
-  });
-  const url = data?.data?.[0]?.url || data?.data?.[0]?.b64_json;
-  if (!url) throw new Error('no image url returned');
-  return url.startsWith('http') ? url : `data:image/png;base64,${url}`;
+    input: { messages: [{ role: 'user', content: [{ text: prompt }] }] },
+    parameters: {
+      size: opts.size || '1024*1024',
+      n: 1,
+      ...(opts.seed != null ? { seed: opts.seed } : {}),
+    },
+  }, true);
+  const taskId = data?.output?.task_id;
+  if (!taskId) throw new Error('no task_id returned from image-generation');
+  const deadline = Date.now() + 120_000;
+  while (Date.now() < deadline) {
+    const st = await pollTask(taskId);
+    const status = st?.output?.task_status || 'UNKNOWN';
+    if (status === 'SUCCEEDED') {
+      const content = st?.output?.choices?.[0]?.message?.content;
+      const fromChoices = Array.isArray(content) ? content.find((x: any) => x?.image)?.image : null;
+      const url = fromChoices || st?.output?.results?.[0]?.url;
+      if (!url) throw new Error('no image url returned');
+      return url;
+    }
+    if (status === 'FAILED') throw new Error(`image task failed: ${JSON.stringify(st?.output || {}).slice(0, 200)}`);
+    await new Promise((r) => setTimeout(r, 3000));
+  }
+  throw new Error('image task timed out');
 }
 
 /* ---- reference-to-video: the load-bearing engine (wan2.7-r2v / happyhorse-1.1-r2v) ----
@@ -44,7 +61,8 @@ export async function startSounding(prompt: string, referenceImageUrl: string, o
   const c = getConfig();
   const data = await post(`${c.dashscopeBase}/api/v1/services/aigc/video-generation/video-synthesis`, {
     model: c.models.video,
-    input: { prompt, img_url: referenceImageUrl, ref_images: [referenceImageUrl] },
+    // r2v takes the reference plate(s) as input.media (not img_url/ref_images)
+    input: { prompt, media: [referenceImageUrl] },
     parameters: {
       resolution: opts.resolution || '720P',
       watermark: false,
@@ -57,13 +75,18 @@ export async function startSounding(prompt: string, referenceImageUrl: string, o
   return taskId;
 }
 
-export interface SoundingStatus { status: 'PENDING' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | string; videoUrl?: string; raw?: unknown }
-export async function pollSounding(taskId: string): Promise<SoundingStatus> {
+/* shared async-task poll (image + video jobs both land on /api/v1/tasks/{id}) */
+async function pollTask(taskId: string): Promise<any> {
   const c = getConfig();
   const res = await fetch(`${c.dashscopeBase}/api/v1/tasks/${taskId}`, { headers: headers() });
   const text = await res.text();
   if (!res.ok) throw new Error(`DashScope poll ${res.status}: ${text.slice(0, 300)}`);
-  const data = text ? JSON.parse(text) : {};
+  return text ? JSON.parse(text) : {};
+}
+
+export interface SoundingStatus { status: 'PENDING' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | string; videoUrl?: string; raw?: unknown }
+export async function pollSounding(taskId: string): Promise<SoundingStatus> {
+  const data = await pollTask(taskId);
   const status = data?.output?.task_status || 'UNKNOWN';
   const videoUrl = data?.output?.video_url || data?.output?.results?.[0]?.url;
   return { status, videoUrl, raw: data };

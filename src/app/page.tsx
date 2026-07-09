@@ -37,7 +37,7 @@ export default function Surface() {
     try {
       const res = await fetch('/api/voyage', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question }) });
       const data = await res.json();
-      if (data.id) router.push(`/sounding/${data.id}`);
+      if (data.id) router.push(`/sounding/${data.id}?q=${encodeURIComponent(question)}`);
       else { setBusy(false); alert(data.error || 'Something went wrong.'); }
     } catch { setBusy(false); }
   }

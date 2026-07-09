@@ -1,23 +1,30 @@
 import { getVoyage } from '@/lib/store';
 import { seedExamples } from '@/lib/seed';
 import { subscribe } from '@/lib/pipeline/bus';
-import { ensureStartedById } from '@/lib/pipeline/service';
+import { ensureStartedById, createVoyageWithId } from '@/lib/pipeline/service';
 import type { PipelineEvent } from '@/lib/pipeline/types';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-// The stream drives the whole pipeline (~15s of model calls) and must outlive the serverless
-// default (10s). 60s is within Vercel Hobby's ceiling and comfortably fits a voyage.
-export const maxDuration = 60;
+// The stream drives the whole pipeline (model calls + r2v renders) and must outlive the serverless
+// default (10s). 300s is within Vercel Hobby's fluid ceiling and fits a full voyage.
+export const maxDuration = 300;
 
 function sse(data: unknown): string {
   return `data: ${JSON.stringify(data)}\n\n`;
 }
 
-export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   await seedExamples();
-  const existing = await getVoyage(id);
+  let existing = await getVoyage(id);
+  if (!existing) {
+    // Serverless seam: the POST that created this voyage may have landed on a different function
+    // instance with its own disk. The client passes the question along, so this instance can
+    // recreate the record under the same id and drive the run itself.
+    const q = (new URL(req.url).searchParams.get('q') || '').trim();
+    if (q.length >= 3) existing = await createVoyageWithId(id, q);
+  }
 
   const stream = new ReadableStream({
     async start(controller) {

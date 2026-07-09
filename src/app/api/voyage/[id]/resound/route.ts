@@ -5,7 +5,7 @@ import { startSounding, pollSounding, downloadBytes, generatePlateImage } from '
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-export const maxDuration = 60; // a targeted re-render is another model call — outlive the 10s default
+export const maxDuration = 300; // a targeted re-render polls a real r2v job — outlive the 10s default
 
 /* Targeted re-render of ONE scene — another sounding. */
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -29,7 +29,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       const deadline = Date.now() + 3 * 60_000;
       while (Date.now() < deadline) {
         const st = await pollSounding(task);
-        if (st.status === 'SUCCEEDED' && st.videoUrl) { const bytes = await downloadBytes(st.videoUrl); scene.videoUrl = await saveMedia(v.id, `scene-${scene.no}-re.mp4`, bytes); break; }
+        if (st.status === 'SUCCEEDED' && st.videoUrl) { const bytes = await downloadBytes(st.videoUrl); scene.videoUrl = await saveMedia(v.id, `scene-${scene.no}-re.mp4`, bytes, st.videoUrl); break; }
         if (st.status === 'FAILED') break;
         await new Promise((r) => setTimeout(r, 4000));
       }

@@ -17,10 +17,16 @@ export function makeOptions(partial?: Partial<VoyageOptions>): VoyageOptions {
 }
 
 export async function createVoyage(question: string, partial?: Partial<VoyageOptions>): Promise<Voyage> {
+  return createVoyageWithId(newId('v'), question, partial);
+}
+
+/** Create (or recreate) a voyage under a known id — lets the Sounding stream rebuild the record
+    when it lands on a serverless instance that never saw the original POST. */
+export async function createVoyageWithId(id: string, question: string, partial?: Partial<VoyageOptions>): Promise<Voyage> {
   const options = makeOptions(partial);
   const now = Date.now();
   const v: Voyage = {
-    id: newId('v'),
+    id,
     question: question.trim().slice(0, 240),
     title: '', subtitle: '', revelation: '',
     options,

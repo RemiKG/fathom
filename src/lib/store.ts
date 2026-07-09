@@ -48,8 +48,10 @@ export async function listVoyages(): Promise<Voyage[]> {
 }
 
 /** Persist a downloaded media file. Returns a URL the app can serve.
-    Local: written under /public/voyages/<id>/ (served statically). OSS seam: upload when configured. */
-export async function saveMedia(id: string, name: string, bytes: Buffer): Promise<string> {
+    Local: written under /public/voyages/<id>/ (served statically). OSS seam: upload when configured.
+    On a read-only serverless disk the local write fails — fall back to the source URL so the
+    freshly generated take still plays (Qwen URLs live ~24h; the persistent deploy keeps bytes). */
+export async function saveMedia(id: string, name: string, bytes: Buffer, sourceUrl?: string): Promise<string> {
   const c = getConfig();
   if (c.oss.enabled) {
     // Object-storage seam: upload to OSS and return the object URL.
@@ -59,10 +61,15 @@ export async function saveMedia(id: string, name: string, bytes: Buffer): Promis
       if (url) return url;
     } catch { /* fall back to local disk */ }
   }
-  const dir = mediaPublicDir(id);
-  await ensure(dir);
-  await fs.writeFile(path.join(dir, name), bytes);
-  return `/voyages/${id}/${name}`;
+  try {
+    const dir = mediaPublicDir(id);
+    await ensure(dir);
+    await fs.writeFile(path.join(dir, name), bytes);
+    return `/voyages/${id}/${name}`;
+  } catch (err) {
+    if (sourceUrl && sourceUrl.startsWith('http')) return sourceUrl;
+    throw err;
+  }
 }
 
 async function ossPut(_id: string, _name: string, _bytes: Buffer): Promise<string | null> {

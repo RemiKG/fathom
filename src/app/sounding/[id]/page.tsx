@@ -22,11 +22,15 @@ export default function SoundingPage() {
   const [counters, setCounters] = useState<Counters | null>(null);
   const [question, setQuestion] = useState('');
   const [done, setDone] = useState(false);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     const seen = new Set<string>(); // effect-local dedup (survives StrictMode re-mount correctly)
+    const qParam = (new URLSearchParams(window.location.search).get('q') || '').trim();
+    if (qParam) setQuestion(qParam);
     fetch(`/api/voyage/${id}`).then((r) => r.json()).then((v) => { if (v?.question) setQuestion(v.question); }).catch(() => {});
-    const es = new EventSource(`/api/voyage/${id}/stream`);
+    // the question rides along so a serverless stream instance can rebuild + drive the voyage itself
+    const es = new EventSource(`/api/voyage/${id}/stream${qParam ? `?q=${encodeURIComponent(qParam)}` : ''}`);
     es.onmessage = (m) => {
       let e: PipelineEvent; try { e = JSON.parse(m.data); } catch { return; }
       switch (e.type) {
@@ -37,8 +41,13 @@ export default function SoundingPage() {
         case 'source': if (!seen.has(e.source.id)) { seen.add(e.source.id); setSources((s) => [...s, e.source]); } break;
         case 'scene': setScenes((sc) => { const i = sc.findIndex((x) => x.no === e.scene.no); if (i < 0) return [...sc, e.scene]; const c = sc.slice(); c[i] = e.scene; return c; }); break;
         case 'counters': setCounters(e.counters); break;
-        case 'done': setDone(true); es.close(); setTimeout(() => router.push(`/voyage/${id}`), 1400); break;
-        case 'error': setStatusLabel('the voyage failed: ' + e.message); es.close(); break;
+        case 'done':
+          setDone(true);
+          // keep the finished record client-side too, so the player/grounding screens can render
+          // even when a later request lands on a serverless instance that never saw this run
+          try { sessionStorage.setItem(`fathom-voyage-${id}`, JSON.stringify(e.voyage)); } catch { /* full/blocked */ }
+          es.close(); setTimeout(() => router.push(`/voyage/${id}`), 1400); break;
+        case 'error': setStatusLabel('the voyage failed: ' + e.message); setFailed(true); es.close(); break;
       }
     };
     es.onerror = () => { /* keep the last state; the run continues server-side */ };
@@ -133,6 +142,11 @@ export default function SoundingPage() {
         {done && (
           <div style={{ position: 'fixed', inset: 'auto 0 24px 0', display: 'flex', justifyContent: 'center', zIndex: 30 }}>
             <button className="btn brass" onClick={() => router.push(`/voyage/${id}`)}>watch the voyage →</button>
+          </div>
+        )}
+        {failed && (
+          <div style={{ position: 'fixed', inset: 'auto 0 24px 0', display: 'flex', justifyContent: 'center', zIndex: 30 }}>
+            <button className="btn brass" onClick={() => router.push('/')}>← ask again</button>
           </div>
         )}
       </div>

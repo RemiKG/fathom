@@ -25,7 +25,7 @@ export interface LLM {
   json<T = unknown>(o: CompleteOpts, opts?: { retries?: number }): Promise<T>;
 }
 
-const TIMEOUT_MS = 90_000;
+const TIMEOUT_MS = 150_000;
 
 async function fetchJSON(url: string, init: RequestInit): Promise<any> {
   const ctl = new AbortController();
@@ -78,6 +78,9 @@ function qwenLLM(): LLM {
       messages,
       max_tokens: o.maxTokens ?? 2200,
       temperature: o.temperature ?? 0.6,
+      // the tool loop is interactive (a judge is watching the sounding) — skip the long
+      // deliberation phase so every stage lands in seconds, not minutes
+      enable_thinking: false,
     };
     if (jsonMode) body.response_format = { type: 'json_object' };
     return body;
