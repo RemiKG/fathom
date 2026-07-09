@@ -1,0 +1,15 @@
+node_modules
+.next
+.git
+.gitignore
+.vercel
+.env
+.env.*
+.fathom-store
+public/voyages
+npm-debug.log*
+*.tsbuildinfo
+Dockerfile
+.dockerignore
+README.md
+LICENSE
