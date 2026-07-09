@@ -18,15 +18,22 @@ const LENS_VOICE: Record<string, string> = {
 const SUBJECTS = ['headphone', 'sky', 'bread', 'blackhole', 'sleep', 'onion'] as const;
 const ARCHETYPES: DiagramArchetype[] = ['cross-section', 'layers', 'field', 'wave', 'cycle', 'flow'];
 
+/* A truncating string field. LLMs occasionally overrun a field's budget (a slightly long scene
+   subject, a verbose note); a few extra characters should never crash an entire voyage. So we CLAMP
+   the ceiling instead of rejecting, while still enforcing a floor for genuinely-empty fields. */
+const tstr = (max: number, min = 0) =>
+  z.preprocess((v) => (typeof v === 'string' ? v.trim().slice(0, max) : v),
+    min > 0 ? z.string().min(min) : z.string());
+
 /* ───────────────────────── plot_voyage (Navigator) ───────────────────────── */
 const PlotSchema = z.object({
-  title: z.string().min(2).max(120),
-  subtitle: z.string().min(2).max(200),
-  revelation: z.string().min(4).max(400),
+  title: tstr(120, 2),
+  subtitle: tstr(200, 2),
+  revelation: tstr(400, 4),
   subjectKey: z.string().nullish(),
   archetype: z.string(),
-  claims: z.array(z.string().min(4).max(400)).min(2).max(8),
-  searchQueries: z.array(z.string().min(2).max(120)).min(1).max(8),
+  claims: z.array(tstr(400, 4)).min(2).max(8),
+  searchQueries: z.array(tstr(120, 2)).min(1).max(8),
 });
 export interface PlotResult {
   title: string; subtitle: string; revelation: string;
@@ -73,25 +80,25 @@ Return JSON:
 
 /* ───────────────────────── chart_scene (Cartographer) ───────────────────────── */
 const SceneSchema = z.object({
-  subject: z.string().max(160),
-  camera: z.string().max(160).optional().default('slow push in'),
-  motion: z.string().max(240),
-  labelCallouts: z.array(z.string().max(60)).max(8).optional().default([]),
+  subject: tstr(160, 1),
+  camera: z.preprocess((v) => (typeof v === 'string' ? v.trim().slice(0, 160) : v), z.string()).optional().default('slow push in'),
+  motion: tstr(240, 1),
+  labelCallouts: z.array(tstr(60)).max(8).optional().default([]),
   durationS: z.coerce.number().min(1).max(10).optional().default(3),
   editBeat: z.enum(['descent', 'plate', 'move', 'answer']),
-  narration: z.string().max(600).optional().default(''),
+  narration: z.preprocess((v) => (typeof v === 'string' ? v.trim().slice(0, 600) : v), z.string()).optional().default(''),
   claimIndexes: z.array(z.coerce.number().int()).max(8).optional().default([]),
 });
 const ChartSchema = z.object({
   scenes: z.array(SceneSchema).min(2).max(8),
   diagram: z.object({
     archetype: z.string(),
-    labels: z.array(z.object({ text: z.string().max(60), brass: z.boolean().nullish() })).max(8).optional().default([]),
+    labels: z.array(z.object({ text: tstr(60, 1), brass: z.boolean().nullish() })).max(8).optional().default([]),
     layers: z.coerce.number().int().min(0).max(6).nullish(),
-    flowLabel: z.string().max(60).nullish(),
-    answerLabel: z.string().max(60).nullish(),
+    flowLabel: tstr(60).nullish(),
+    answerLabel: tstr(60).nullish(),
   }),
-  claimSources: z.array(z.object({ claimIndex: z.coerce.number().int(), sourceIndex: z.coerce.number().int().nullish(), withholdReason: z.string().max(240).nullish() })).optional().default([]),
+  claimSources: z.array(z.object({ claimIndex: z.coerce.number().int(), sourceIndex: z.coerce.number().int().nullish(), withholdReason: tstr(240).nullish() })).optional().default([]),
 });
 
 export interface ChartResult {
@@ -170,8 +177,8 @@ Return JSON:
    scores per-scene style consistency, and flags at most one scene to re-sound. When an actual
    rendered frame image is supplied, the vision model reads the pixels too. */
 const AssaySchema = z.object({
-  claims: z.array(z.object({ claimId: z.string(), verified: z.coerce.boolean(), note: z.string().max(600).nullish() })).optional().default([]),
-  scenes: z.array(z.object({ no: z.coerce.number().int(), styleScore: z.coerce.number().min(0).max(1), ok: z.coerce.boolean(), fixHint: z.string().max(600).nullish() })).optional().default([]),
+  claims: z.array(z.object({ claimId: z.string(), verified: z.coerce.boolean(), note: tstr(600).nullish() })).optional().default([]),
+  scenes: z.array(z.object({ no: z.coerce.number().int(), styleScore: z.coerce.number().min(0).max(1), ok: z.coerce.boolean(), fixHint: tstr(600).nullish() })).optional().default([]),
 });
 export interface AssayResult {
   claims: Array<{ claimId: string; verified: boolean; note?: string }>;
