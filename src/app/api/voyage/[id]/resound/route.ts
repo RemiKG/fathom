@@ -5,6 +5,7 @@ import { startSounding, pollSounding, downloadBytes, generatePlateImage } from '
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60; // a targeted re-render is another model call — outlive the 10s default
 
 /* Targeted re-render of ONE scene — another sounding. */
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {

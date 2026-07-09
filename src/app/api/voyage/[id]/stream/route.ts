@@ -6,6 +6,9 @@ import type { PipelineEvent } from '@/lib/pipeline/types';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+// The stream drives the whole pipeline (~15s of model calls) and must outlive the serverless
+// default (10s). 60s is within Vercel Hobby's ceiling and comfortably fits a voyage.
+export const maxDuration = 60;
 
 function sse(data: unknown): string {
   return `data: ${JSON.stringify(data)}\n\n`;
