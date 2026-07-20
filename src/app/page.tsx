@@ -14,7 +14,7 @@ const EXAMPLES = [
   'why do onions make me cry?',
 ];
 
-interface Health { env: { videoEngine: string | null; budgetS: number; provider: string; degraded: boolean }; }
+interface Health { env: { videoEngine: string | null; budgetS: number; provider: string; degraded: boolean }; primaryUrl?: string | null; }
 interface LogItem { id: string; title: string; subtitle: string; subjectKey?: string; counters: { framesVerified: number; framesTotal: number; secondsUsed: number }; example: boolean }
 
 export default function Surface() {
@@ -55,6 +55,12 @@ export default function Surface() {
           active="ask"
           readout={<><span>free budget</span> <b>{budget.toFixed(1)}s</b> <span className="sep" /> <span className="brass">{engine === 'still-preview' ? 'still-preview' : engine}</span></>}
         />
+        {health?.primaryUrl && (
+          <a className="preview-banner" href={health.primaryUrl}>
+            You&apos;re on a hosted preview. Voyages run and persist on the{' '}
+            <b>primary deployment</b> — open it to sound one end to end&nbsp;➜
+          </a>
+        )}
         <div className="surface-wrap">
           <Wordmark className="hero-wm" drop="short" />
           <div className="htag">see how anything works.</div>
