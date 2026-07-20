@@ -27,7 +27,7 @@ export async function saveVoyage(v: Voyage): Promise<void> {
 export async function getVoyage(id: string): Promise<Voyage | null> {
   try {
     const raw = await fs.readFile(path.join(voyDir(), `${id}.json`), 'utf8');
-    return JSON.parse(raw) as Voyage;
+    return await pruneDeadMedia(JSON.parse(raw) as Voyage);
   } catch {
     return null;
   }
@@ -39,7 +39,7 @@ export async function listVoyages(): Promise<Voyage[]> {
     const out: Voyage[] = [];
     for (const f of files) {
       if (!f.endsWith('.json')) continue;
-      try { out.push(JSON.parse(await fs.readFile(path.join(voyDir(), f), 'utf8'))); } catch { /* skip */ }
+      try { out.push(await pruneDeadMedia(JSON.parse(await fs.readFile(path.join(voyDir(), f), 'utf8')))); } catch { /* skip */ }
     }
     return out.sort((a, b) => b.createdAt - a.createdAt);
   } catch {
@@ -47,8 +47,25 @@ export async function listVoyages(): Promise<Voyage[]> {
   }
 }
 
+/** A record can outlive its media (a redeploy wipes public/voyages while the JSON survives, or
+    vice versa). Drop local media URLs whose file is gone, at read time and non-destructively,
+    so the player falls back to the living plate instead of a dead <video>. */
+async function pruneDeadMedia(v: Voyage): Promise<Voyage> {
+  for (const s of v.scenes || []) {
+    for (const k of ['videoUrl', 'posterUrl'] as const) {
+      const u = s[k];
+      if (u && u.startsWith('/voyages/')) {
+        const fp = path.join(process.cwd(), 'public', ...u.split('/').filter(Boolean));
+        try { await fs.access(fp); } catch { s[k] = null; }
+      }
+    }
+  }
+  return v;
+}
+
 /** Persist a downloaded media file. Returns a URL the app can serve.
-    Local: written under /public/voyages/<id>/ (served statically). OSS seam: upload when configured.
+    Local: written under /public/voyages/<id>/ and served by the /voyages/[id]/[file] route
+    (`next start` snapshots public/ at boot, so runtime files need the route). OSS seam: upload when configured.
     On a read-only serverless disk the local write fails — fall back to the source URL so the
     freshly generated take still plays (Qwen URLs live ~24h; the persistent deploy keeps bytes). */
 export async function saveMedia(id: string, name: string, bytes: Buffer, sourceUrl?: string): Promise<string> {

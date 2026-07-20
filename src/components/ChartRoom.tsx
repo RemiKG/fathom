@@ -105,13 +105,18 @@ export function ChartRoom({ voyage }: { voyage: Voyage | null }) {
               <St n={`${c?.secondsSavedPct ?? 0}%`} k="seconds saved vs naive" brass />
               <St n={c?.reRenderRate ?? '0/0'} k="re-render rate" />
               <St n={`${c?.styleConsistency ?? 0}`} k="style-consistency" />
-              <St n={c ? `${Math.floor(c.endToEndMs / 60000)}m ${Math.round((c.endToEndMs % 60000) / 1000)}s` : '—'} k="end-to-end" />
+              <St n={c ? fmtDur(c.endToEndMs) : '—'} k="end-to-end" />
             </div>
           </div>
         </div>
       </div>
     </div>
   );
+}
+
+function fmtDur(ms: number): string {
+  const t = Math.round(ms / 1000); // round the total first so 59.96s never reads "60s"
+  return `${Math.floor(t / 60)}m ${t % 60}s`;
 }
 
 function Slider({ label, value, onChange, val }: { label: string; value: number; onChange: (f: number) => void; val: string }) {

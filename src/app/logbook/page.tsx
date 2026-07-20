@@ -19,7 +19,7 @@ export default function LogbookPage() {
       {items.map((i) => (
         <div key={i.id} className="lb-plate" onClick={() => router.push(`/voyage/${i.id}`)}>
           {i.example && <Link href="/" className="marker chip brass" style={{ fontSize: 11 }} onClick={(e) => e.stopPropagation()}>example · ask your own →</Link>}
-          <div className="lp"><LogbookPlate spec={{ w: 360, h: 236, subject: i.subjectKey || 'headphone', title: i.title, meta: meta(i), verified: i.counters.framesVerified >= i.counters.framesTotal }} /></div>
+          <div className="lp"><LogbookPlate spec={{ w: 360, h: 236, subject: i.subjectKey || 'headphone', title: i.title, meta: meta(i), verified: i.counters.framesTotal > 0 && i.counters.framesVerified >= i.counters.framesTotal }} /></div>
         </div>
       ))}
     </div>
@@ -29,14 +29,14 @@ export default function LogbookPage() {
     <div className="app">
       <ChartBg w={1600} h={1000} seed={12} />
       <div className="z">
-        <TopBar active="logbook" readout={data ? <><span>kept</span> <b>{data.stats.kept} voyages</b> <span className="sep" /> <span className="brass">{data.stats.sourcesCited} sources cited · {data.stats.framesVerified} frames verified</span></> : <span>loading…</span>} />
+        <TopBar active="logbook" readout={data ? <><span>sounded</span> <b>{data.stats.kept} voyage{data.stats.kept === 1 ? '' : 's'}</b> <span className="sep" /> <span className="brass">{data.stats.sourcesCited} sources cited · {data.stats.framesVerified} frames verified</span></> : <span>loading…</span>} />
         <div className="lb-wrap">
           <div className="lb-head">
-            <div><h1>The Logbook</h1><div className="lb-sub">Every voyage you’ve sounded, pressed onto a plate. Re-watch, send, or go deeper.</div></div>
+            <div><h1>The Logbook</h1><div className="lb-sub">Every voyage sounded on this deployment, pressed onto a plate. Re-watch, send, or go deeper.</div></div>
             <Link href="/" className="btn primary sm">＋ ask a new one</Link>
           </div>
           <div className="shelf">
-            {data && data.yours.length > 0 && <><div className="rowlab-mono">Yours</div><Row items={data.yours} /></>}
+            {data && data.yours.length > 0 && <><div className="rowlab-mono">Sounded on this ship — one shared shelf, every visitor’s voyages</div><Row items={data.yours} /></>}
             <div className="rowlab-mono">Example voyages — one tap runs the identical real pipeline on your own question</div>
             {data ? <Row items={data.examples} /> : <div className="cap">loading the shelf…</div>}
           </div>

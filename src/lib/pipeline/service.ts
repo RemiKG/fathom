@@ -11,9 +11,32 @@ const g = globalThis as unknown as { __fathomStarted?: Set<string> };
 if (!g.__fathomStarted) g.__fathomStarted = new Set();
 const started = g.__fathomStarted;
 
+function num(x: unknown, lo: number, hi: number, dflt: number, round = true): number {
+  const n = Number(x);
+  if (!Number.isFinite(n)) return dflt;
+  const clamped = Math.min(hi, Math.max(lo, n));
+  return round ? Math.round(clamped) : clamped;
+}
+
+/** Options arrive from the UI *and* from raw API callers — clamp everything to the ranges the
+    pipeline actually supports, so a wild payload degrades to sane values instead of crashing
+    the run halfway through. */
 export function makeOptions(partial?: Partial<VoyageOptions>): VoyageOptions {
   const c = getConfig();
-  return { ...DEFAULT_OPTIONS, budgetS: c.video.budgetS, ...(partial || {}) };
+  const base: VoyageOptions = { ...DEFAULT_OPTIONS, budgetS: c.video.budgetS };
+  const p = partial || {};
+  return {
+    lens: p.lens === 'story' || p.lens === 'doc' || p.lens === 'kid' || p.lens === 'technical' ? p.lens : base.lens,
+    scenes: num(p.scenes, 3, 6, base.scenes),
+    totalSeconds: num(p.totalSeconds, 20, 120, base.totalSeconds),
+    budgetS: num(p.budgetS, 5, 100, base.budgetS),
+    groundingDepth: num(p.groundingDepth, 1, 4, base.groundingDepth),
+    strictness: num(p.strictness, 0, 1, base.strictness, false),
+    withhold: typeof p.withhold === 'boolean' ? p.withhold : base.withhold,
+    verify: typeof p.verify === 'boolean' ? p.verify : base.verify,
+    narration: typeof p.narration === 'boolean' ? p.narration : base.narration,
+    aspect: p.aspect === '9:16' || p.aspect === '16:9' ? p.aspect : base.aspect,
+  };
 }
 
 export async function createVoyage(question: string, partial?: Partial<VoyageOptions>): Promise<Voyage> {

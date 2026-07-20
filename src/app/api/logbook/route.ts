@@ -7,7 +7,8 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   await seedExamples();
-  const all = await listVoyages();
+  // errored voyages have no artifact to open — they don't belong on the shelf
+  const all = (await listVoyages()).filter((v) => v.status !== 'error');
   // lightweight list payload (drop heavy per-scene detail)
   const items = all.map((v) => ({
     id: v.id, question: v.question, title: v.title, subtitle: v.subtitle, subjectKey: v.subjectKey,
@@ -17,5 +18,6 @@ export async function GET() {
   const examples = items.filter((i) => i.example);
   const totalSources = all.reduce((a, v) => a + v.counters.sourcesCited, 0);
   const totalFrames = all.reduce((a, v) => a + v.counters.framesVerified, 0);
-  return NextResponse.json({ yours, examples, stats: { kept: items.length, sourcesCited: totalSources, framesVerified: totalFrames } });
+  // "kept" counts real soundings only — the pre-seeded examples are labelled, not claimed
+  return NextResponse.json({ yours, examples, stats: { kept: yours.length, sourcesCited: totalSources, framesVerified: totalFrames } });
 }

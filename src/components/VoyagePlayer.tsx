@@ -24,6 +24,9 @@ export function VoyagePlayer({ voyage, startBeat }: { voyage: Voyage; startBeat?
   const [t, setT] = useState(startT);
   const [playing, setPlaying] = useState(false);
   const [muted, setMuted] = useState(true);
+  // if a scene's film fails to load (expired URL, wiped media dir), fall back to the living plate
+  const [videoFailed, setVideoFailed] = useState<Record<string, boolean>>({});
+  const videoRef = useRef<HTMLVideoElement | null>(null);
   const raf = useRef<number | null>(null);
   const lastTick = useRef<number>(0);
 
@@ -83,15 +86,25 @@ export function VoyagePlayer({ voyage, startBeat }: { voyage: Voyage; startBeat?
   }
 
   const beatSeq = timeline.marks.map((m) => m.scene.editBeat);
-  const download = voyage.scenes.find((s) => s.videoUrl)?.videoUrl;
+  const download = voyage.scenes.find((s) => s.videoUrl && !videoFailed[s.videoUrl])?.videoUrl;
+  const sceneVideo = scene?.videoUrl && !videoFailed[scene.videoUrl] ? scene.videoUrl : null;
+
+  // autoPlay only takes effect at mount — drive play/pause imperatively as the state changes
+  useEffect(() => {
+    const el = videoRef.current;
+    if (!el) return;
+    if (playing) el.play().catch(() => { /* fallback plate still animates */ });
+    else el.pause();
+  }, [playing, sceneVideo]);
 
   return (
     <div className="player-wrap">
       <div className="player">
         <div className="screen">
           <ChartBg w={1180} h={580} seed={9} radius={16} />
-          {scene?.videoUrl ? (
-            <video src={scene.videoUrl} autoPlay={playing} loop muted playsInline
+          {sceneVideo ? (
+            <video key={sceneVideo} ref={videoRef} src={sceneVideo} autoPlay={playing} loop muted playsInline
+              onError={() => setVideoFailed((f) => ({ ...f, [sceneVideo]: true }))}
               style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 2 }} />
           ) : voyage.diagram ? (
             <div className="cut">

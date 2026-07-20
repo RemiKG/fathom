@@ -77,12 +77,12 @@ export default function Surface() {
               <button key={e} className="spark-chip" onClick={() => { setQ(e); inputRef.current?.focus(); }}>{e}</button>
             ))}
           </div>
-          {log && log.stats.kept > 0 && (
+          {log && log.yours.length > 0 && last && (
             <Link href="/logbook" className="resume card" style={{ textDecoration: 'none' }}>
-              <div className="mini">{last ? <SubjectIcon kind={last.subjectKey || 'headphone'} size={70} /> : null}</div>
+              <div className="mini"><SubjectIcon kind={last.subjectKey || 'headphone'} size={70} /></div>
               <div className="rt">
-                <div className="n">Your logbook · <b>{log.stats.kept} voyage{log.stats.kept === 1 ? '' : 's'} kept</b></div>
-                <div className="s">{last ? `last: ${last.title} — ${last.subtitle} · ${Math.round(last.counters.secondsUsed)}s · ${last.counters.framesVerified}/${last.counters.framesTotal} verified` : 'tap an example below to sound your first voyage'}</div>
+                <div className="n">The logbook · <b>{log.yours.length} voyage{log.yours.length === 1 ? '' : 's'} sounded</b></div>
+                <div className="s">{`last: ${last.title} — ${last.subtitle} · ${Math.round(last.counters.secondsUsed)}s · ${last.counters.framesVerified}/${last.counters.framesTotal} verified`}</div>
               </div>
               <span className="btn ghost sm">Open logbook →</span>
             </Link>

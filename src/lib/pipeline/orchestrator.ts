@@ -133,10 +133,14 @@ export async function runVoyage(v: Voyage): Promise<Voyage> {
 
     /* 5 · sound_scene — the moving cutaways (r2v when the engine is connected; else still preview) */
     setStatus(v, 'sounding', 'sounding the scenes…');
+    await saveVoyage(v);
     for (const s of v.scenes) {
       s.status = 'sounding';
+      v.statusLabel = `sounding scene ${s.no}/${v.scenes.length}…`;
       emit(v.id, { type: 'scene', scene: s });
       emit(v.id, { type: 'tool', tool: 'sound_scene', detail: `rendering ${s.no}/${v.scenes.length}…`, state: 'running' });
+      // persist per-scene progress so the saved record never lags minutes behind the live stream
+      await saveVoyage(v);
       if (cfg.video.hasEngine && referenceImageUrl) {
         try {
           const taskId = await startSounding(scenePrompt(v, s), referenceImageUrl, { durationS: Math.round(s.durationS) });
@@ -150,6 +154,7 @@ export async function runVoyage(v: Voyage): Promise<Voyage> {
       emit(v.id, { type: 'tool', tool: 'sound_scene', detail: `scene ${s.no} sounded`, state: 'ok' });
       emit(v.id, { type: 'scene', scene: s });
       pushCounters(v);
+      await saveVoyage(v);
     }
     await saveVoyage(v);
 
@@ -229,7 +234,11 @@ export async function runVoyage(v: Voyage): Promise<Voyage> {
     return v;
   } catch (err: any) {
     v.status = 'error';
-    v.error = String(err?.message || err);
+    const raw = String(err?.message || err);
+    // a schema-validation failure reads as a raw JSON dump — say something a human can act on
+    v.error = err?.name === 'ZodError' || raw.trimStart().startsWith('[')
+      ? 'the charted plan came back malformed — sound the voyage again'
+      : raw;
     emit(v.id, { type: 'error', message: v.error });
     await saveVoyage(v).catch(() => {});
     return v;

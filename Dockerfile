@@ -4,7 +4,8 @@
 # Health: GET /api/health  (reports provider + engine capabilities)
 #
 # Note: deliberately NOT output:standalone — Fathom writes voyage media to
-# public/voyages/ at runtime and `next start` serves those from disk.
+# public/voyages/ at runtime; the /voyages/[id]/[file] route serves those from
+# disk (`next start` only serves public files that existed at boot).
 
 # ── build ────────────────────────────────────────────────────────────────────
 FROM node:20-slim AS build
