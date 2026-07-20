@@ -83,7 +83,7 @@ export function describeEnv() {
     ttsEngine: c.dashscopeKey ? c.models.tts : 'browser_speech',
     imageEngine: c.dashscopeKey ? c.models.image : 'procedural_vector',
     assayer: c.provider === 'qwen' ? c.models.assayer : c.provider === 'anthropic' ? c.models.anthropic + ' (vision)' : 'unavailable',
-    persistence: c.oss.enabled ? 'alibaba_oss' : 'filesystem',
+    persistence: process.env.BLOB_READ_WRITE_TOKEN ? 'vercel_blob' : c.oss.enabled ? 'alibaba_oss' : 'filesystem',
     database: c.databaseUrl ? 'external' : 'json_files',
     budgetS: c.video.budgetS,
     degraded: c.provider === 'none' || !c.video.hasEngine,
